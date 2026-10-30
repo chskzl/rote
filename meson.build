@@ -7,6 +7,7 @@ project(
 )
 
 gtk_dep = dependency('gtk4')
+layer_shell_dep = dependency('gtk4-layer-shell-0')
 
 executable(
   'rote',
@@ -14,7 +15,7 @@ executable(
     'src/app.c',
     'src/main.c',
   ],
-  dependencies: [gtk_dep],
+  dependencies: [gtk_dep, layer_shell_dep],
   include_directories: include_directories('src/include'),
 )
 
