@@ -4,9 +4,13 @@
 #define ROTE_APP_ID "org.chskzl.rote"
 #define ROTE_APP_NAME "Rote"
 
+#define ROTE_DEFAULT_PANEL_WIDTH 440
+#define ROTE_DEFAULT_PANEL_HEIGHT 600
+
 typedef struct _RoteApp RoteApp;
 
 RoteApp *rote_app_new();
 int rote_app_run(RoteApp *app, int argc, char **argv);
 
 #endif
+

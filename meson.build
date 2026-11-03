@@ -14,6 +14,7 @@ executable(
   [
     'src/app.c',
     'src/main.c',
+    'src/style.c',
   ],
   dependencies: [gtk_dep, layer_shell_dep],
   include_directories: include_directories('src/include'),

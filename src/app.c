@@ -1,10 +1,12 @@
-#include "include/app.h"
+#include "app.h"
+#include "style.h"
 #include <gtk/gtk.h>
 #include <gtk4-layer-shell/gtk4-layer-shell.h>
 
 struct _RoteApp {
   GtkApplication *application;
   GtkWidget *window;
+  GtkWidget *panel;
   GtkWidget *scrolled;
   GtkWidget *textview;
   GFile *datafile;
@@ -68,6 +70,14 @@ on_close_request(GtkWindow *window, gpointer user_data)
 }
 
 static void
+on_startup(GApplication *application, gpointer user_data)
+{
+  (void) user_data;
+  g_application_hold(application);
+  initialize_css();
+}
+
+static void
 on_activate(GApplication *application, gpointer user_data)
 {
   RoteApp *self = user_data;
@@ -78,10 +88,21 @@ on_activate(GApplication *application, gpointer user_data)
   gtk_window_present(GTK_WINDOW(self->window));
   gtk_layer_init_for_window(GTK_WINDOW(self->window));
   gtk_layer_set_namespace(GTK_WINDOW(self->window), "rote");
-  gtk_layer_set_respect_close(GTK_WINDOW(self->window), TRUE);
+
+  self->panel = gtk_overlay_new();
+  gtk_widget_add_css_class(self->panel, "panel");
+  gtk_widget_set_hexpand(self->panel, FALSE);
+  gtk_widget_set_vexpand(self->panel, FALSE);
+  gtk_widget_set_size_request(self->panel, ROTE_DEFAULT_PANEL_WIDTH, ROTE_DEFAULT_PANEL_HEIGHT);
+  gtk_widget_set_halign(self->panel, GTK_ALIGN_END);
+  gtk_widget_set_valign(self->panel, GTK_ALIGN_START);
+  gtk_window_set_child(GTK_WINDOW(self->window), self->panel);
+
+
   gtk_layer_set_layer(GTK_WINDOW(self->window), GTK_LAYER_SHELL_LAYER_TOP);
   gtk_layer_set_exclusive_zone(GTK_WINDOW(self->window), 0);
   gtk_layer_set_keyboard_mode(GTK_WINDOW(self->window), GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE);
+  gtk_layer_set_respect_close(GTK_WINDOW(self->window), TRUE);
   gtk_layer_set_anchor(GTK_WINDOW(self->window), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
   gtk_layer_set_anchor(GTK_WINDOW(self->window), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
   gtk_layer_set_anchor(GTK_WINDOW(self->window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
@@ -90,7 +111,7 @@ on_activate(GApplication *application, gpointer user_data)
   self->scrolled = gtk_scrolled_window_new();
   gtk_widget_set_vexpand(self->scrolled, TRUE);
   gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(self->scrolled), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-  gtk_window_set_child(GTK_WINDOW(self->window), self->scrolled);
+  gtk_overlay_set_child(GTK_OVERLAY(self->panel), self->scrolled);
 
   initialize_textview(self);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(self->scrolled), self->textview);
@@ -108,8 +129,11 @@ rote_app_new()
 {
   RoteApp *self = g_new(RoteApp, 1);
   self->application = gtk_application_new(ROTE_APP_ID, G_APPLICATION_DEFAULT_FLAGS);
-  if (!gtk_layer_is_supported())
+  if (!gtk_layer_is_supported()) {
+    g_printerr("Error: layer shell is not supported");
     g_application_quit(G_APPLICATION(self->application));
+  }
+  g_signal_connect(self->application, "startup", G_CALLBACK(on_startup), self);
   g_signal_connect(self->application, "activate", G_CALLBACK(on_activate), self);
   return self;
 }
