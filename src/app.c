@@ -32,6 +32,28 @@ initialize_textview(RoteApp* self)
 }
 
 static gboolean
+point_in_panel(RoteApp *self, double x, double y)
+{
+  graphene_point_t *in = graphene_point_init(graphene_point_alloc(), x, y);
+  graphene_point_t *out = graphene_point_alloc();
+  gtk_widget_compute_point(self->window, self->panel, in, out);
+  x = out->x;
+  y = out->y;
+  return x >= 0 && y >= 0 && x < ROTE_DEFAULT_PANEL_WIDTH && y < ROTE_DEFAULT_PANEL_HEIGHT;
+}
+
+static void
+on_mouse_pressed(GtkGestureClick *gesture, int n_press, double x, double y, gpointer user_data)
+{
+  RoteApp *self = user_data;
+  (void) gesture;
+  (void) n_press;
+  if (!point_in_panel(self, x, y)) {
+    gtk_window_close(GTK_WINDOW(self->window));
+  }
+}
+
+static gboolean
 on_key_pressed(GtkEventControllerKey *controller,
                guint keyval,
                guint keycode,
@@ -116,6 +138,11 @@ on_activate(GApplication *application, gpointer user_data)
   initialize_textview(self);
   gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(self->scrolled), self->textview);
   gtk_widget_grab_focus(self->textview);
+
+  GtkGesture *click_controller = gtk_gesture_click_new();
+  gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click_controller), 0);
+  g_signal_connect(click_controller, "pressed", G_CALLBACK(on_mouse_pressed), self);
+  gtk_widget_add_controller(self->window, GTK_EVENT_CONTROLLER(click_controller));
 
   GtkEventController *key_controller = gtk_event_controller_key_new();
   g_signal_connect(key_controller, "key-pressed", G_CALLBACK(on_key_pressed), self);
