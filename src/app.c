@@ -10,6 +10,8 @@ struct _RoteApp {
   GtkWidget *scrolled;
   GtkWidget *textview;
   GFile *datafile;
+  int panel_width;
+  int panel_height;
 };
 
 static void
@@ -39,7 +41,7 @@ point_in_panel(RoteApp *self, double x, double y)
   gtk_widget_compute_point(self->window, self->panel, in, out);
   x = out->x;
   y = out->y;
-  return x >= 0 && y >= 0 && x < ROTE_DEFAULT_PANEL_WIDTH && y < ROTE_DEFAULT_PANEL_HEIGHT;
+  return x >= 0 && y >= 0 && x < self->panel_width && y < self->panel_height;
 }
 
 static void
@@ -115,7 +117,7 @@ on_activate(GApplication *application, gpointer user_data)
   gtk_widget_add_css_class(self->panel, "panel");
   gtk_widget_set_hexpand(self->panel, FALSE);
   gtk_widget_set_vexpand(self->panel, FALSE);
-  gtk_widget_set_size_request(self->panel, ROTE_DEFAULT_PANEL_WIDTH, ROTE_DEFAULT_PANEL_HEIGHT);
+  gtk_widget_set_size_request(self->panel, self->panel_width, self->panel_height);
   gtk_widget_set_halign(self->panel, GTK_ALIGN_END);
   gtk_widget_set_valign(self->panel, GTK_ALIGN_START);
   gtk_window_set_child(GTK_WINDOW(self->window), self->panel);
@@ -152,9 +154,23 @@ on_activate(GApplication *application, gpointer user_data)
 }
 
 RoteApp *
-rote_app_new()
+rote_app_new(int argc, char **argv)
 {
   RoteApp *self = g_new(RoteApp, 1);
+  self->panel_width = ROTE_DEFAULT_PANEL_WIDTH;
+  self->panel_height = ROTE_DEFAULT_PANEL_HEIGHT;
+
+  for (int i = 1; i < argc; i++) {
+    const char* arg = argv[i];
+    g_printerr("%s\n", arg);
+    if (g_strcmp0(arg, "-w") == 0) {
+      self->panel_width = g_ascii_strtoll(argv[++i], NULL, 10);
+    }
+    else if (g_strcmp0(arg, "-h") == 0) {
+      self->panel_height = g_ascii_strtoll(argv[++i], NULL, 10);
+    }
+  }
+
   self->application = gtk_application_new(ROTE_APP_ID, G_APPLICATION_DEFAULT_FLAGS);
   if (!gtk_layer_is_supported()) {
     g_printerr("Error: layer shell is not supported");
@@ -169,7 +185,7 @@ int
 rote_app_run(RoteApp *self, int argc, char **argv)
 {
   int status;
-  status = g_application_run(G_APPLICATION(self->application), argc, argv);
+  status = g_application_run(G_APPLICATION(self->application), 0, NULL);
   g_object_unref(self->application);
   g_free(self);
   return status;

@@ -9,7 +9,7 @@
 
 typedef struct _RoteApp RoteApp;
 
-RoteApp *rote_app_new();
+RoteApp *rote_app_new(int argc, char **argv);
 int rote_app_run(RoteApp *app, int argc, char **argv);
 
 #endif
