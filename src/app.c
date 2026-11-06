@@ -18,19 +18,15 @@ static void
 initialize_textview(RoteApp* self)
 {
   GError *err;
+  char *buf;
+  gsize bytes_read = 0;
+  GtkTextBuffer *textbuf;
   self->textview = gtk_text_view_new();
   self->datafile = g_file_new_for_path(g_build_filename(g_get_user_data_dir(), "rote.txt", NULL));
-  GFileInputStream* stream = g_file_read(self->datafile, NULL, &err);
-  gsize bytes_read = 0;
-  gsize bytes_requested = 4096;
-  char* buf = malloc(bytes_requested);
-  // TODO: remove the limit of 4096 bytes, or provide the user with feedback
-  bytes_read = g_input_stream_read(G_INPUT_STREAM(stream), buf, bytes_requested, NULL, &err);
-  buf[bytes_read] = 0;
-  g_input_stream_close(G_INPUT_STREAM(stream), NULL, NULL);
-  GtkTextBuffer *textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(self->textview));
+  g_file_load_contents(self->datafile, NULL, &buf, &bytes_read, NULL, &err);
+  textbuf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(self->textview));
   gtk_text_buffer_set_text(textbuf, buf, bytes_read);
-  free(buf);
+  g_free(buf);
 }
 
 static gboolean
@@ -109,7 +105,6 @@ on_activate(GApplication *application, gpointer user_data)
 
   self->window = gtk_application_window_new(GTK_APPLICATION(self->application));
   gtk_window_set_title(GTK_WINDOW(self->window), ROTE_APP_NAME);
-  gtk_window_present(GTK_WINDOW(self->window));
   gtk_layer_init_for_window(GTK_WINDOW(self->window));
   gtk_layer_set_namespace(GTK_WINDOW(self->window), "rote");
 
@@ -121,7 +116,6 @@ on_activate(GApplication *application, gpointer user_data)
   gtk_widget_set_halign(self->panel, GTK_ALIGN_END);
   gtk_widget_set_valign(self->panel, GTK_ALIGN_START);
   gtk_window_set_child(GTK_WINDOW(self->window), self->panel);
-
 
   gtk_layer_set_layer(GTK_WINDOW(self->window), GTK_LAYER_SHELL_LAYER_TOP);
   gtk_layer_set_exclusive_zone(GTK_WINDOW(self->window), 0);
@@ -151,6 +145,8 @@ on_activate(GApplication *application, gpointer user_data)
   gtk_widget_add_controller(self->window, key_controller);
 
   g_signal_connect(self->window, "close-request", G_CALLBACK(on_close_request), self);
+
+  gtk_window_present(GTK_WINDOW(self->window));
 }
 
 RoteApp *
